@@ -1,41 +1,27 @@
-# Real-Time LiDAR Perception Pipeline
+# Image Recognition Pipeline
 
-An end-to-end 3D perception pipeline that detects and tracks vehicles from raw LiDAR point cloud data in real time. Built to isolate vehicle positions from noisy point cloud scans and maintain stable tracking across frames.
+An image classification pipeline built and evaluated on Tiny ImageNet, combining classical feature extraction with a learned autoencoder to improve recognition performance under limited training data.
 
 ## Key Results
 
-- Processed 500+ point clouds through the full pipeline (segmentation → clustering → filtering → tracking)
-- Improved multi-metric tracking performance from 20/80 to 40/80, evaluated across localization accuracy, motion consistency, and bounding box accuracy
-- Designed a 6-constraint geometric filter that eliminates false-positive detections using point count, height, XY dimensions, and ground-relative position
+- Improved model recall by 56% and F1 score by 20% by integrating ORB feature extraction with an Autoencoder-based approach
+- Trained on 64x64 pixel images using only a 5% training split, evaluated against the full test split — demonstrating strong generalization under limited data conditions
+- Benchmarked across all 200 Tiny ImageNet classes using confusion matrices and F1 comparisons to validate each iteration
 
-## Pipeline Overview
+## Approach
 
-1. **Voxel Downsampling** — reduces point cloud density while preserving structure, for faster downstream processing
-2. **RANSAC Ground Segmentation** — separates ground plane points from object points
-3. **DBSCAN Clustering** — groups remaining points into candidate object clusters
-4. **Geometric Filtering** — applies a 6-constraint check (point count, height, XY extent, ground-relative position, etc.) to reject non-vehicle clusters
-5. **Tracking** — matches clusters across frames using the Hungarian algorithm, with dead-reckoning prediction to bridge frames with missed detections
+1. **Feature Extraction** — ORB (Oriented FAST and Rotated BRIEF) keypoint descriptors extracted from each image as a lightweight, classical feature representation
+2. **Autoencoder** — learned latent representations trained to capture structure beyond hand-crafted features, especially useful given the small training split
+3. **Classification** — combined feature representations used to classify images across 200 classes
+4. **Evaluation** — confusion matrices and F1 score comparisons used to benchmark each iteration and confirm generalization rather than overfitting to the small training set
 
 ## Tech Stack
 
 - Python
-- Open3D (point cloud processing)
-- NumPy
-- SciPy (`linear_sum_assignment` for Hungarian algorithm matching)
-
-## Repo Structure
-
-```
-├── data/           # sample point cloud frames [update to match your actual layout]
-├── src/
-│   ├── segmentation.py
-│   ├── clustering.py
-│   ├── filtering.py
-│   └── tracking.py
-├── notebooks/      # exploration / visualization notebooks, if any
-├── requirements.txt
-└── README.md
-```
+- OpenCV (ORB feature extraction)
+- PyTorch (Autoencoder) — [update if you used TensorFlow/Keras instead]
+- scikit-learn (confusion matrix, F1 score, evaluation metrics)
+- Tiny ImageNet dataset (200 classes, 64x64 images)
 
 ## Setup
 
@@ -45,12 +31,20 @@ cd <repo-name>
 pip install -r requirements.txt
 ```
 
+Download Tiny ImageNet separately (not included in repo due to size): http://cs231n.stanford.edu/tiny-imagenet-200.zip
+
 ## Usage
 
 ```bash
-python src/main.py --input data/sample.pcd   # [update to your actual entry point / args]
+python src/train.py --train-split 0.05      # [update to your actual entry point / args]
+python src/evaluate.py
 ```
 
 ## Results
 
-Tracking performance improved from a baseline score of 20/80 to 40/80 (2x) across three evaluation dimensions: localization accuracy, motion consistency, and bounding box accuracy, after adding Hungarian algorithm assignment and dead-reckoning prediction.
+| Metric | Baseline | With ORB + Autoencoder |
+|---|---|---|
+| Recall | — | +56% |
+| F1 Score | — | +20% |
+
+Trained on only 5% of the training data and evaluated on the full test split to stress-test generalization.
